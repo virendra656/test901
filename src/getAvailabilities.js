@@ -1,6 +1,6 @@
 import moment from "moment";
 import knex from "knexClient";
-let _ = require("lodash");
+
 
 /**
  * 
@@ -9,10 +9,13 @@ let _ = require("lodash");
  * @return matched date keys for a given day on recurring events
  */
 
-function getDateKeysOnEventDay(availabilitiesKeys, day) {
+function getDateKeysOnEventDate(availabilitiesKeys, date, weekly_recurring) {
   let matchedDateKeys = []; //holds date keys
   availabilitiesKeys.forEach(dateKey => {
-    if (day === moment(new Date(dateKey)).format("d")) {
+    if (weekly_recurring && date.format("d") === moment(new Date(dateKey)).format("d")) {
+      matchedDateKeys.push(dateKey);
+    }
+    else if (!weekly_recurring && date.format("YYYY-MM-DD") === dateKey) {
       matchedDateKeys.push(dateKey);
     }
   });
@@ -102,7 +105,7 @@ export default async function getAvailabilities(date, numberOfDays = 7) {
       date.isBefore(event.ends_at);
       date.add(30, "minutes")
     ) {
-      const dateKeysOnEvent = getDateKeysOnEventDay(availabilitiesKeys, date.format("d"));
+      const dateKeysOnEvent = getDateKeysOnEventDate(availabilitiesKeys, date, event.weekly_recurring);
 
       switch (event.kind) {
         case "opening":
@@ -114,6 +117,6 @@ export default async function getAvailabilities(date, numberOfDays = 7) {
       }
     }
   }
-
+  
   return Array.from(availabilities.values())
 }

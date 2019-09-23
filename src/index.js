@@ -8,10 +8,14 @@ let _ = require("lodash");
  * @return matched date keys for a given day on recurring events
  */
 
-function getAvailabilitiesKeysByDay(availabilitiesKeys, day) {
+function getAvailabilitiesKeysByDay(availabilitiesKeys, date, weekly_recurring) {
+
     let matchedDateKeys = [];
     availabilitiesKeys.forEach(dateKey => {
-        if (day === moment(new Date(dateKey)).format("d")) {
+        if (weekly_recurring && date.format("d") === moment(new Date(dateKey)).format("d")) {
+            matchedDateKeys.push(dateKey);
+        }
+        else if (!weekly_recurring && date.format("YYYY-MM-DD") === dateKey) {
             matchedDateKeys.push(dateKey);
         }
     });
@@ -19,31 +23,37 @@ function getAvailabilitiesKeysByDay(availabilitiesKeys, day) {
 }
 
 (async () => {
-    let date = new Date("2019-09-22");
+    let date = new Date("2019-09-21");
     const availabilities = new Map();
     let availabilitiesKeys = [];
-    for (let i = 0; i < 7; ++i) {
+    for (let i = 0; i < 16; ++i) {
         const tmpDate = moment(date).add(i, "days");
         availabilities.set(tmpDate.format("YYYY-MM-DD"), {
             date: tmpDate.toDate(),
             slots: []
         });
     }
-    
+
     availabilitiesKeys = Array.from(availabilities.keys());
 
     let events = [
         {
             kind: "appointment",
-            starts_at: new Date("2019-09-23 10:30"),
-            ends_at: new Date("2019-09-23 11:30")
-        },
-        {
+            starts_at: new Date("2019-09-29 10:30"),
+            ends_at: new Date("2019-09-29 11:30")
+          },
+          {
             kind: "opening",
-            starts_at: new Date("2019-09-09 09:30"),
-            ends_at: new Date("2019-09-09 12:30"),
+            starts_at: new Date("2019-09-15 09:30"),
+            ends_at: new Date("2019-09-15 12:30"),
             weekly_recurring: true
-        }
+          },
+          {
+            kind: "opening",
+            starts_at: new Date("2019-09-30 09:30"),
+            ends_at: new Date("2019-09-30 12:30"),
+            weekly_recurring: false
+          }
     ]
 
     events = _.orderBy(events, 'kind', 'desc');;
@@ -64,12 +74,19 @@ function getAvailabilitiesKeysByDay(availabilitiesKeys, day) {
             date.add(30, "minutes")
         ) {
             const day = availabilities.get(date.format("d"));
-            const availabilitiesKeysByDay = getAvailabilitiesKeysByDay(availabilitiesKeys, date.format("d"));
+
+
+            const availabilitiesKeysByDay = getAvailabilitiesKeysByDay(availabilitiesKeys, date, event.weekly_recurring);
 
             if (event.kind === "opening") {
+
                 availabilitiesKeysByDay.forEach(dateKey => {
                     const day = availabilities.get(dateKey);
-                    day.slots.push(date.format("H:mm"));
+
+                    if (day.slots.indexOf(date.format("H:mm")) < 0) {
+                        day.slots.push(date.format("H:mm"));
+                    }
+
                 });
             } else if (event.kind === "appointment") {
                 availabilitiesKeysByDay.forEach(dateKey => {
